@@ -1,0 +1,1389 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PKK Energy Management Dashboard</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+      background: #f7f8fa;
+      color: #1f2328;
+      min-height: 100vh;
+      padding: 32px 16px 60px;
+    }
+    .page { max-width: 960px; margin: 0 auto; }
+
+    /* ── Header ── */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 24px;
+      padding-bottom: 18px;
+      border-bottom: 2px solid #e5e7eb;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .header-left h1 { font-size: 1.35rem; font-weight: 700; color: #1f2328; line-height: 1.2; }
+    .header-left p  { font-size: 0.85rem; color: #57606a; margin-top: 4px; }
+    .audit-badge {
+      background: #1a4f9c;
+      color: #fff;
+      font-size: 0.78rem;
+      font-weight: 600;
+      padding: 5px 14px;
+      border-radius: 20px;
+      white-space: nowrap;
+    }
+
+    /* ── Tabs ── */
+    .tabs {
+      display: flex;
+      border-bottom: 2px solid #e5e7eb;
+      margin-bottom: 24px;
+      overflow-x: auto;
+      gap: 0;
+    }
+    .tab-btn {
+      background: none; border: none;
+      border-bottom: 3px solid transparent;
+      margin-bottom: -2px;
+      padding: 10px 20px;
+      font-size: 0.88rem; font-weight: 500;
+      color: #57606a; cursor: pointer;
+      white-space: nowrap;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .tab-btn:hover { color: #1f2328; }
+    .tab-btn.active { color: #3b82d4; border-bottom-color: #3b82d4; font-weight: 600; }
+
+    /* ── Panels ── */
+    .tab-panel { display: none; }
+    .tab-panel.visible { display: block; }
+
+    /* ── Cards ── */
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+      margin-bottom: 24px;
+    }
+    .cards-3 { grid-template-columns: repeat(3, 1fr); }
+    @media (max-width: 680px) { .cards, .cards-3 { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 400px) { .cards, .cards-3 { grid-template-columns: 1fr; } }
+    .card {
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 18px 14px;
+      text-align: center;
+    }
+    .card .label {
+      font-size: 0.72rem; color: #57606a;
+      text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px;
+    }
+    .card .value { font-size: 1.65rem; font-weight: 700; line-height: 1.1; }
+    .card .sub   { font-size: 0.75rem; color: #57606a; margin-top: 4px; }
+
+    /* ── Status Hero ── */
+    .status-hero { text-align: center; margin-bottom: 24px; }
+    .status-hero .hero-label {
+      font-size: 0.8rem; color: #57606a;
+      text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 10px;
+    }
+    .status-pill {
+      display: inline-block; font-size: 1.05rem; font-weight: 700;
+      padding: 9px 32px; border-radius: 30px; border: 2px solid transparent;
+    }
+    .status-pill.hijau  { background: #e6f6ef; border-color: #b8e8d4; color: #1a7f4b; }
+    .status-pill.kuning { background: #fff8e6; border-color: #f0d080; color: #8a6200; }
+    .status-pill.merah  { background: #ffeef0; border-color: #f0b8be; color: #c4302b; }
+
+    /* ── Section wrappers ── */
+    .section-box {
+      background: #fff; border: 1px solid #e5e7eb;
+      border-radius: 8px; padding: 20px; margin-bottom: 24px;
+    }
+    .section-title { font-size: 0.9rem; font-weight: 600; color: #1f2328; margin-bottom: 14px; }
+    .sub-heading   { font-size: 0.88rem; font-weight: 600; color: #1f2328; margin: 22px 0 10px; }
+
+    /* ── Year selector ── */
+    .year-selector {
+      display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; align-items: center;
+    }
+    .year-selector span { font-size: 0.78rem; color: #57606a; margin-right: 4px; }
+    .yr-btn {
+      background: #fff; border: 1px solid #e5e7eb;
+      border-radius: 6px; padding: 5px 14px;
+      font-size: 0.82rem; font-weight: 500; color: #57606a; cursor: pointer;
+      transition: all 0.15s;
+    }
+    .yr-btn:hover { border-color: #3b82d4; color: #3b82d4; }
+    .yr-btn.active { background: #3b82d4; border-color: #3b82d4; color: #fff; font-weight: 600; }
+
+    /* ── Bar Chart ── */
+    .bar-chart-wrap { overflow-x: auto; }
+    .bar-chart {
+      display: flex; align-items: flex-end;
+      gap: 6px; height: 140px; min-width: 480px;
+      padding-bottom: 2px;
+    }
+    .bar-col {
+      display: flex; flex-direction: column;
+      align-items: center; flex: 1; height: 100%; justify-content: flex-end;
+    }
+    .bar {
+      width: 100%; border-radius: 4px 4px 0 0;
+      min-height: 4px; transition: opacity 0.2s;
+    }
+    .bar:hover { opacity: 0.75; }
+    .bar-val { font-size: 0.6rem; color: #57606a; margin-top: 3px; white-space: nowrap; }
+    .bar-lbl { font-size: 0.68rem; color: #57606a; margin-top: 2px; }
+    .chart-legend {
+      display: flex; gap: 14px; flex-wrap: wrap;
+      margin-top: 12px; font-size: 0.75rem; color: #57606a;
+    }
+    .leg-dot {
+      display: inline-block; width: 10px; height: 10px;
+      border-radius: 50%; margin-right: 5px; vertical-align: middle;
+    }
+
+    /* ── Multi-year comparison bars ── */
+    .multi-bar-wrap { overflow-x: auto; margin-bottom: 24px; }
+    .multi-bar-chart {
+      display: flex; align-items: flex-end;
+      gap: 10px; height: 160px; min-width: 560px;
+    }
+    .multi-bar-group { display: flex; align-items: flex-end; gap: 2px; flex: 1; flex-direction: column; }
+    .multi-bar-group-inner { display: flex; align-items: flex-end; gap: 2px; width: 100%; }
+    .multi-bar-group .grp-lbl { font-size: 0.65rem; color: #57606a; text-align: center; margin-top: 3px; width: 100%; }
+
+    /* ── Tables ── */
+    .table-wrap {
+      background: #fff; border: 1px solid #e5e7eb;
+      border-radius: 8px; overflow-x: auto; margin-bottom: 20px;
+    }
+    table { width: 100%; border-collapse: collapse; font-size: 0.83rem; }
+    thead th {
+      background: #f7f8fa; padding: 9px 12px;
+      text-align: left; font-size: 0.72rem; font-weight: 600;
+      color: #57606a; text-transform: uppercase; letter-spacing: 0.04em;
+      border-bottom: 1px solid #e5e7eb; white-space: nowrap;
+    }
+    thead th.num { text-align: right; }
+    tbody td { padding: 9px 12px; border-bottom: 1px solid #f0f0f0; color: #1f2328; }
+    tbody td.num { text-align: right; font-variant-numeric: tabular-nums; }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover td { background: #f7f8fa; }
+    tbody tr.row-high td { background: #fff8e6; }
+    tbody tr.row-high:hover td { background: #fff0cc; }
+    tbody tr.row-total td { background: #f0f4ff; font-weight: 700; border-top: 2px solid #d0d9f0; }
+    tbody tr.row-avg td { background: #f7f8fa; font-weight: 600; color: #57606a; }
+
+    /* ── Badges ── */
+    .badge-ok   { display:inline-block; background:#e6f6ef; border:1px solid #b8e8d4; color:#1a7f4b; font-size:0.72rem; font-weight:600; padding:2px 9px; border-radius:12px; white-space:nowrap; }
+    .badge-warn { display:inline-block; background:#fff8e6; border:1px solid #f0d080;  color:#8a6200;  font-size:0.72rem; font-weight:600; padding:2px 9px; border-radius:12px; white-space:nowrap; }
+    .badge-high { display:inline-block; background:#ffeef0; border:1px solid #f0b8be;  color:#c4302b;  font-size:0.72rem; font-weight:600; padding:2px 9px; border-radius:12px; white-space:nowrap; }
+    .badge-info { display:inline-block; background:#e8f0fb; border:1px solid #b8d0f0;  color:#1a4f9c;  font-size:0.72rem; font-weight:600; padding:2px 9px; border-radius:12px; white-space:nowrap; }
+
+    /* ── Badge count row ── */
+    .badge-row { display:flex; gap:12px; flex-wrap:wrap; margin-bottom:20px; }
+    .badge-count {
+      display:flex; align-items:center; gap:8px;
+      background:#fff; border:1px solid #e5e7eb;
+      border-radius:8px; padding:10px 16px; font-size:0.85rem;
+    }
+    .badge-count .bc-num { font-size:1.35rem; font-weight:700; }
+    .badge-count .bc-lbl { color:#57606a; }
+
+    /* ── Savings highlight ── */
+    .savings-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:20px; }
+    @media(max-width:600px){ .savings-grid{ grid-template-columns:1fr; } }
+    .saving-card {
+      background:#e6f6ef; border:1px solid #b8e8d4; border-radius:8px;
+      padding:14px; text-align:center;
+    }
+    .saving-card .s-num { font-size:1.4rem; font-weight:700; color:#1a7f4b; }
+    .saving-card .s-lbl { font-size:0.75rem; color:#2d6a4f; margin-top:4px; }
+
+    /* ── Tips ── */
+    .tips-wrap { background:#fff; border:1px solid #e5e7eb; border-radius:8px; padding:18px 20px; }
+    .tips-wrap ul { list-style:none; }
+    .tips-wrap li { padding:8px 0; border-bottom:1px solid #f0f0f0; font-size:0.875rem; }
+    .tips-wrap li:last-child { border-bottom:none; }
+    .tip-icon { color:#22a06b; margin-right:8px; font-weight:700; }
+
+    /* ── BEI Horizontal Bar Chart ── */
+    .bei-chart { display:flex; flex-direction:column; gap:10px; margin-bottom:6px; }
+    .bei-row { display:flex; align-items:center; gap:10px; }
+    .bei-lbl { font-size:0.78rem; color:#1f2328; width:220px; flex-shrink:0; text-align:right; }
+    .bei-track { flex:1; background:#f0f0f0; border-radius:4px; height:28px; position:relative; min-width:80px; }
+    .bei-fill { height:100%; border-radius:4px; transition:width 0.4s; display:flex; align-items:center; justify-content:flex-end; padding-right:8px; }
+    .bei-fill span { font-size:0.78rem; font-weight:700; color:#fff; white-space:nowrap; }
+    .bei-note { font-size:0.72rem; color:#57606a; margin-top:12px; font-style:italic; }
+
+    /* ── Pie / Donut via CSS (load apportioning) ── */
+    .load-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:20px; }
+    @media(max-width:560px){ .load-grid{ grid-template-columns:1fr; } }
+    .load-card {
+      border-radius:8px; padding:16px 14px; text-align:center;
+      border:1px solid #e5e7eb;
+    }
+    .load-card .lc-pct { font-size:1.8rem; font-weight:700; }
+    .load-card .lc-lbl { font-size:0.75rem; color:#57606a; margin-top:4px; }
+    .load-card .lc-kwh { font-size:0.82rem; font-weight:600; margin-top:6px; }
+
+    /* ── ESM table highlight ── */
+    tbody tr.row-esm1 td { background:#e8f0fb; }
+    tbody tr.row-esm2 td { background:#e6f6ef; }
+    tbody tr.row-esm3 td { background:#fff8e6; }
+    tbody tr.row-esm1:hover td { background:#d8e8f8; }
+    tbody tr.row-esm2:hover td { background:#d6f0e4; }
+    tbody tr.row-esm3:hover td { background:#fff0cc; }
+
+    /* ── Footnote ── */
+    .footnote { font-size:0.72rem; color:#57606a; margin-top:8px; font-style:italic; }
+
+    /* ── Footer ── */
+    .page-footer {
+      text-align:center; font-size:0.75rem; color:#57606a;
+      margin-top:48px; padding-top:16px; border-top:1px solid #e5e7eb;
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ══ HEADER ══ -->
+  <div class="header">
+    <div class="header-left">
+      <h1>Politeknik Kota Kinabalu</h1>
+      <p>Sistem Pengurusan Tenaga — Historical Energy Consumption Analysis 2019–2025</p>
+      <p style="font-size:0.82rem;color:#3b82d4;margin-top:3px;font-weight:600;">Pengurus Tenaga: Ir. Ts. Syahrunizam Bin Buyamin</p>
+    </div>
+    <span class="audit-badge">Audit 2019–2025</span>
+  </div>
+
+  <!-- ══ TABS ══ -->
+  <nav class="tabs">
+    <button class="tab-btn active" onclick="switchTab('profile',this)">🏛️ Building Profile</button>
+    <button class="tab-btn" onclick="switchTab('ringkasan',this)">📊 Ringkasan</button>
+    <button class="tab-btn" onclick="switchTab('bil',this)">⚡ Bil Elektrik</button>
+    <button class="tab-btn" onclick="switchTab('penjimatan',this)">💰 Penjimatan</button>
+    <button class="tab-btn" onclick="switchTab('lighting',this)">💡 Lighting</button>
+    <button class="tab-btn" onclick="switchTab('hvac',this)">❄️ HVAC</button>
+    <button class="tab-btn" onclick="switchTab('bei',this)">🏢 Intensiti &amp; ESM</button>
+    <button class="tab-btn" onclick="switchTab('forecast',this)">📈 Forecasting</button>
+  </nav>
+
+  <!-- ══════════════════════════════════════
+       TAB 1 — RINGKASAN
+  ══════════════════════════════════════ -->
+  <div class="tab-panel" id="panel-ringkasan">
+
+    <!-- Status -->
+    <div class="status-hero">
+      <div class="hero-label">Status Tenaga Kompleks PKK — 2025</div>
+      <div class="status-pill" id="status-pill"></div>
+    </div>
+
+    <!-- 2025 KPI Cards -->
+    <div class="cards">
+      <div class="card">
+        <div class="label">Jumlah kWh 2025</div>
+        <div class="value" style="color:#3b82d4;">3,169,134</div>
+        <div class="sub">kWh (Jan–Dis)</div>
+      </div>
+      <div class="card">
+        <div class="label">Jumlah Kos 2025</div>
+        <div class="value" style="color:#7c5cd8;">RM 1,204,881</div>
+        <div class="sub">Kos tenaga tahunan</div>
+      </div>
+      <div class="card">
+        <div class="label">Penjimatan vs 2019</div>
+        <div class="value" style="color:#22a06b;">1,257,883</div>
+        <div class="sub">kWh — 28% jimat</div>
+      </div>
+      <div class="card">
+        <div class="label">CO₂ Dikurang 2025</div>
+        <div class="value" style="color:#e07c3a;">660</div>
+        <div class="sub">Tan CO₂</div>
+      </div>
+    </div>
+
+    <!-- Multi-year bar chart -->
+    <div class="section-box">
+      <div class="section-title">Perbandingan Jumlah kWh Tahunan (2019–2025)</div>
+      <div class="bar-chart-wrap">
+        <div class="bar-chart" id="yearly-bar"></div>
+      </div>
+      <div class="chart-legend">
+        <span><span class="leg-dot" style="background:#aab4c0;"></span>Baseline 2019</span>
+        <span><span class="leg-dot" style="background:#3b82d4;"></span>2020–2025</span>
+        <span><span class="leg-dot" style="background:#22a06b;"></span>Terbaik (paling rendah)</span>
+      </div>
+    </div>
+
+    <!-- Monthly trend for selected year -->
+    <div class="section-box">
+      <div class="section-title">Trend Penggunaan Bulanan (kWh)</div>
+      <div class="year-selector">
+        <span>Pilih tahun:</span>
+        <button class="yr-btn" onclick="renderMonthly('2019',this)">2019</button>
+        <button class="yr-btn" onclick="renderMonthly('2020',this)">2020</button>
+        <button class="yr-btn" onclick="renderMonthly('2021',this)">2021</button>
+        <button class="yr-btn" onclick="renderMonthly('2022',this)">2022</button>
+        <button class="yr-btn" onclick="renderMonthly('2023',this)">2023</button>
+        <button class="yr-btn" onclick="renderMonthly('2024',this)">2024</button>
+        <button class="yr-btn active" onclick="renderMonthly('2025',this)">2025</button>
+      </div>
+      <div class="bar-chart-wrap">
+        <div class="bar-chart" id="monthly-bar"></div>
+      </div>
+    </div>
+
+    <!-- Tips -->
+    <div class="tips-wrap">
+      <div class="section-title">💚 Petua Penjimatan Tenaga</div>
+      <ul>
+        <li><span class="tip-icon">✓</span>Matikan lampu dan pendingin hawa apabila bilik tidak digunakan.</li>
+        <li><span class="tip-icon">✓</span>Tetapkan suhu pendingin hawa pada 24–25°C untuk kecekapan optimum (MS1525).</li>
+        <li><span class="tip-icon">✓</span>Gunakan cahaya semula jadi pada waktu siang — buka langsir/tingkap.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       TAB 2 — BIL ELEKTRIK (DETAILED)
+  ══════════════════════════════════════ -->
+  <div class="tab-panel" id="panel-bil">
+
+    <div class="year-selector">
+      <span>Pilih tahun:</span>
+      <button class="yr-btn" onclick="renderBilTable('2019',this)">2019</button>
+      <button class="yr-btn" onclick="renderBilTable('2020',this)">2020</button>
+      <button class="yr-btn" onclick="renderBilTable('2021',this)">2021</button>
+      <button class="yr-btn" onclick="renderBilTable('2022',this)">2022</button>
+      <button class="yr-btn" onclick="renderBilTable('2023',this)">2023</button>
+      <button class="yr-btn" onclick="renderBilTable('2024',this)">2024</button>
+      <button class="yr-btn active" onclick="renderBilTable('2025',this)">2025</button>
+    </div>
+
+    <!-- Dynamic summary cards -->
+    <div class="cards cards-3" id="bil-summary-cards"></div>
+
+    <!-- Dynamic table -->
+    <div class="table-wrap" id="bil-table-wrap"></div>
+    <p class="footnote">Sumber: Rekod bil TNB PKK. Sasaran bulanan berdasarkan purata Baseline 2019 ÷ 1.28.</p>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       TAB 3 — PENJIMATAN & CO₂
+  ══════════════════════════════════════ -->
+  <div class="tab-panel" id="panel-penjimatan">
+
+    <div class="sub-heading">Ringkasan Penjimatan Tenaga vs Baseline 2019</div>
+    <div class="savings-grid">
+      <div class="saving-card"><div class="s-num">33%</div><div class="s-lbl">Penjimatan 2022 (1,442,090 kWh)</div></div>
+      <div class="saving-card"><div class="s-num">28%</div><div class="s-lbl">Penjimatan 2023 (1,235,957 kWh)</div></div>
+      <div class="saving-card"><div class="s-num">29%</div><div class="s-lbl">Penjimatan 2024 (1,300,499 kWh)</div></div>
+    </div>
+    <div class="savings-grid">
+      <div class="saving-card"><div class="s-num">28%</div><div class="s-lbl">Penjimatan 2025 (1,257,883 kWh)</div></div>
+      <div class="saving-card" style="background:#e8f0fb;border-color:#b8d0f0;">
+        <div class="s-num" style="color:#1a4f9c;">757</div>
+        <div class="s-lbl" style="color:#1a4f9c;">Tan CO₂ dikurang 2022</div>
+      </div>
+      <div class="saving-card" style="background:#e8f0fb;border-color:#b8d0f0;">
+        <div class="s-num" style="color:#1a4f9c;">660</div>
+        <div class="s-lbl" style="color:#1a4f9c;">Tan CO₂ dikurang 2025</div>
+      </div>
+    </div>
+
+    <div class="sub-heading">Jadual Perbandingan Tahunan — kWh, Kos &amp; Penjimatan</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Tahun</th>
+            <th class="num">Jumlah kWh</th>
+            <th class="num">Jumlah Kos (RM)</th>
+            <th class="num">Penjimatan kWh</th>
+            <th class="num">% Penjimatan</th>
+            <th class="num">CO₂ Dikurang (tan)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td><strong>Baseline 2019</strong></td><td class="num">4,427,017</td><td class="num">1,434,354</td><td class="num">—</td><td class="num">—</td><td class="num">—</td></tr>
+          <tr><td>2020</td><td class="num">2,984,927</td><td class="num">967,116</td><td class="num">1,442,090</td><td class="num">33%</td><td class="num">—</td></tr>
+          <tr><td>2021</td><td class="num">2,891,060</td><td class="num">1,033,903</td><td class="num">1,535,957</td><td class="num">35%</td><td class="num">—</td></tr>
+          <tr><td>2022</td><td class="num">2,984,927</td><td class="num">967,116</td><td class="num">1,442,090</td><td class="num">33%</td><td class="num">757</td></tr>
+          <tr><td>2023</td><td class="num">3,191,060</td><td class="num">1,033,903</td><td class="num">1,235,957</td><td class="num">28%</td><td class="num">649</td></tr>
+          <tr><td>2024</td><td class="num">3,126,518</td><td class="num">1,012,992</td><td class="num">1,300,499</td><td class="num">29%</td><td class="num">683</td></tr>
+          <tr class="row-total"><td>2025</td><td class="num">3,169,134</td><td class="num">1,204,881</td><td class="num">1,257,883</td><td class="num">28%</td><td class="num">660</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="footnote">Penjimatan dikira berbanding Baseline 2019 (4,427,017 kWh). CO₂ berdasarkan faktor pelepasan TNB Sabah.</p>
+
+    <div class="sub-heading">RM Penjimatan Kos Tenaga vs Baseline 2019</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Tahun</th>
+            <th class="num">RM Penjimatan (Yearly)</th>
+            <th class="num">% Penjimatan Kos</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>2022</td><td class="num">547,440</td><td class="num">31%</td></tr>
+          <tr><td>2023</td><td class="num">477,219</td><td class="num">27%</td></tr>
+          <tr><td>2024</td><td class="num">512,255</td><td class="num">27%</td></tr>
+          <tr class="row-total"><td>2025</td><td class="num">482,536</td><td class="num">27%</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       TAB 4 — LIGHTING AUDIT
+  ══════════════════════════════════════ -->
+  <div class="tab-panel" id="panel-lighting">
+    <div class="badge-row">
+      <div class="badge-count"><span class="bc-num" style="color:#1a7f4b;">4</span><span class="bc-lbl">Kawasan Pematuhan</span></div>
+      <div class="badge-count"><span class="bc-num" style="color:#8a6200;">2</span><span class="bc-lbl">Kawasan Perlu Tindakan</span></div>
+      <div class="badge-count"><span class="bc-num" style="color:#3b82d4;">6</span><span class="bc-lbl">Jumlah Kawasan Diaudit</span></div>
+    </div>
+    <div class="sub-heading">Inventori Sistem Pencahayaan</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Kawasan</th><th>Jenis Lampu</th><th class="num">Bil. Unit</th><th class="num">Wattage (W)</th><th class="num">Beban (kW)</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Dewan Kuliah A</td><td>LED Tube</td><td class="num">48</td><td class="num">36</td><td class="num">1.73</td><td><span class="badge-ok">✓ Pematuhan</span></td></tr>
+          <tr class="row-high"><td>Dewan Kuliah B</td><td>Fluorescent</td><td class="num">60</td><td class="num">36</td><td class="num">2.16</td><td><span class="badge-warn">⚠ Tindakan</span></td></tr>
+          <tr><td>Pejabat Am</td><td>LED Panel</td><td class="num">32</td><td class="num">24</td><td class="num">0.77</td><td><span class="badge-ok">✓ Pematuhan</span></td></tr>
+          <tr><td>Makmal Komputer</td><td>LED Tube</td><td class="num">80</td><td class="num">18</td><td class="num">1.44</td><td><span class="badge-ok">✓ Pematuhan</span></td></tr>
+          <tr class="row-high"><td>Kafeteria</td><td>Fluorescent</td><td class="num">40</td><td class="num">40</td><td class="num">1.60</td><td><span class="badge-warn">⚠ Tindakan</span></td></tr>
+          <tr><td>Koridor / Tangga</td><td>LED Bulb</td><td class="num">120</td><td class="num">9</td><td class="num">1.08</td><td><span class="badge-ok">✓ Pematuhan</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="sub-heading">Bacaan Lapangan — Tahap Pencahayaan (Lux)</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Kawasan</th><th class="num">Bacaan Lux</th><th class="num">Standard MS1525</th><th class="num">Perbezaan</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Dewan Kuliah A</td><td class="num">380</td><td class="num">300</td><td class="num">+80</td><td><span class="badge-ok">✓ Pematuhan</span></td></tr>
+          <tr class="row-high"><td>Dewan Kuliah B</td><td class="num">210</td><td class="num">300</td><td class="num">-90</td><td><span class="badge-warn">⚠ Tindakan</span></td></tr>
+          <tr><td>Pejabat Am</td><td class="num">450</td><td class="num">400</td><td class="num">+50</td><td><span class="badge-ok">✓ Pematuhan</span></td></tr>
+          <tr><td>Makmal Komputer</td><td class="num">520</td><td class="num">500</td><td class="num">+20</td><td><span class="badge-ok">✓ Pematuhan</span></td></tr>
+          <tr class="row-high"><td>Kafeteria</td><td class="num">180</td><td class="num">200</td><td class="num">-20</td><td><span class="badge-warn">⚠ Tindakan</span></td></tr>
+          <tr class="row-high"><td>Koridor / Tangga</td><td class="num">95</td><td class="num">100</td><td class="num">-5</td><td><span class="badge-warn">⚠ Tindakan</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="footnote">Standard rujukan: MS1525:2014 — Kod Amalan Kecekapan Tenaga untuk Bangunan Bukan Kediaman.</p>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       TAB 5 — HVAC AUDIT
+  ══════════════════════════════════════ -->
+  <div class="tab-panel" id="panel-hvac">
+    <div class="badge-row">
+      <div class="badge-count"><span class="bc-num" style="color:#1a7f4b;">4</span><span class="bc-lbl">Unit Pematuhan</span></div>
+      <div class="badge-count"><span class="bc-num" style="color:#8a6200;">2</span><span class="bc-lbl">Unit Perlu Tindakan</span></div>
+      <div class="badge-count"><span class="bc-num" style="color:#3b82d4;">6</span><span class="bc-lbl">Jumlah Unit Diaudit</span></div>
+    </div>
+    <div class="sub-heading">Inventori Sistem HVAC</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Kawasan</th><th>Jenis Unit</th><th class="num">Kapasiti (TR)</th><th class="num">Tahun Pasang</th><th class="num">COP</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Dewan Kuliah A</td><td>Split Unit</td><td class="num">2.5</td><td class="num">2018</td><td class="num">2.8</td><td><span class="badge-ok">✓ Pematuhan</span></td></tr>
+          <tr class="row-high"><td>Dewan Kuliah B</td><td>Split Unit</td><td class="num">2.5</td><td class="num">2013</td><td class="num">2.1</td><td><span class="badge-warn">⚠ Tindakan</span></td></tr>
+          <tr><td>Pejabat Am</td><td>Cassette AC</td><td class="num">3.0</td><td class="num">2020</td><td class="num">3.2</td><td><span class="badge-ok">✓ Pematuhan</span></td></tr>
+          <tr><td>Makmal Komputer</td><td>Precision AC</td><td class="num">5.0</td><td class="num">2019</td><td class="num">3.0</td><td><span class="badge-ok">✓ Pematuhan</span></td></tr>
+          <tr class="row-high"><td>Kafeteria</td><td>Split Unit</td><td class="num">1.5</td><td class="num">2012</td><td class="num">1.9</td><td><span class="badge-warn">⚠ Tindakan</span></td></tr>
+          <tr><td>Bilik Server</td><td>Precision AC</td><td class="num">3.0</td><td class="num">2021</td><td class="num">3.4</td><td><span class="badge-ok">✓ Pematuhan</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="sub-heading">Bacaan Lapangan — Suhu &amp; Kelembapan</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Kawasan</th><th class="num">Suhu (°C)</th><th class="num">Kelembapan (%)</th><th>Standard MS1525</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Dewan Kuliah A</td><td class="num">24.5</td><td class="num">62</td><td>23–26°C · 55–70%</td><td><span class="badge-ok">✓ Pematuhan</span></td></tr>
+          <tr class="row-high"><td>Dewan Kuliah B</td><td class="num">27.1</td><td class="num">71</td><td>23–26°C · 55–70%</td><td><span class="badge-warn">⚠ Tindakan</span></td></tr>
+          <tr><td>Pejabat Am</td><td class="num">23.8</td><td class="num">58</td><td>23–26°C · 55–70%</td><td><span class="badge-ok">✓ Pematuhan</span></td></tr>
+          <tr><td>Makmal Komputer</td><td class="num">22.9</td><td class="num">55</td><td>23–26°C · 55–70%</td><td><span class="badge-info">⚠ Sejuk</span></td></tr>
+          <tr class="row-high"><td>Kafeteria</td><td class="num">28.3</td><td class="num">74</td><td>23–26°C · 55–70%</td><td><span class="badge-warn">⚠ Tindakan</span></td></tr>
+          <tr><td>Bilik Server</td><td class="num">21.5</td><td class="num">52</td><td>23–26°C · 55–70%</td><td><span class="badge-info">⚠ Sejuk</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="footnote">Standard rujukan: MS1525:2014 — Suhu: 23–26°C · Kelembapan: 55–70% · COP minimum: 2.3</p>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       TAB 6 — BEI & ESM
+  ══════════════════════════════════════ -->
+  <div class="tab-panel" id="panel-bei">
+
+    <!-- BEI KPI Cards -->
+    <div class="cards cards-3">
+      <div class="card">
+        <div class="label">BEI 2019 (Baseline)</div>
+        <div class="value" style="color:#aab4c0;">60.46</div>
+        <div class="sub">kWh/m²/tahun</div>
+      </div>
+      <div class="card">
+        <div class="label">BEI 2025 (Semasa)</div>
+        <div class="value" style="color:#3b82d4;">43.28</div>
+        <div class="sub">kWh/m²/tahun</div>
+      </div>
+      <div class="card">
+        <div class="label">Pengurangan BEI</div>
+        <div class="value" style="color:#22a06b;">28.4%</div>
+        <div class="sub">vs Baseline 2019</div>
+      </div>
+    </div>
+
+    <!-- BEI Breakdown -->
+    <div class="section-box">
+      <div class="section-title">0.2 Building Energy Index (BEI) — Luas Lantai Rujukan: 73,217 m²</div>
+      <div class="bei-chart" id="bei-chart"></div>
+      <div class="bei-note">
+        * ACEI menggunakan luas berhawa dingin 27,600 m². LEI &amp; PLEI menggunakan 73,217 m².<br>
+        Indeks sistem tidak boleh dijumlahkan dengan BEI keseluruhan bangunan.
+      </div>
+    </div>
+
+    <!-- Load Apportioning -->
+    <div class="sub-heading">0.3 Agihan Beban Tenaga (Load Apportioning) — 2025</div>
+    <div class="load-grid">
+      <div class="load-card" style="background:#fff8e6;border-color:#f0d080;">
+        <div class="lc-pct" style="color:#8a6200;">55.00%</div>
+        <div class="lc-lbl">❄️ Sistem Penyejukan (HVAC)</div>
+        <div class="lc-kwh" style="color:#8a6200;">1,641,987 kWh</div>
+      </div>
+      <div class="load-card" style="background:#e8f0fb;border-color:#b8d0f0;">
+        <div class="lc-pct" style="color:#1a4f9c;">27.84%</div>
+        <div class="lc-lbl">💡 Sistem Pencahayaan</div>
+        <div class="lc-kwh" style="color:#1a4f9c;">831,060 kWh</div>
+      </div>
+      <div class="load-card" style="background:#f7f8fa;border-color:#e5e7eb;">
+        <div class="lc-pct" style="color:#57606a;">17.15%</div>
+        <div class="lc-lbl">🔌 Lain-lain (Plug Load)</div>
+        <div class="lc-kwh" style="color:#57606a;">511,880 kWh</div>
+      </div>
+    </div>
+
+    <!-- Lamp Inventory -->
+    <div class="sub-heading">Inventori Jenis Lampu (Table 0-2)</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>No</th><th>Jenis Lampu</th><th class="num">Bilangan (unit)</th><th class="num">Peratusan (%)</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>1</td><td>Fluorescent 4ft (T8 36W)</td><td class="num">19,000</td><td class="num">86.72%</td></tr>
+          <tr><td>2</td><td>LED 4ft (18W)</td><td class="num">2,000</td><td class="num">9.13%</td></tr>
+          <tr><td>3</td><td>LED Downlight (12W)</td><td class="num">100</td><td class="num">0.46%</td></tr>
+          <tr><td>4</td><td>LED 2ft (36W)</td><td class="num">800</td><td class="num">3.65%</td></tr>
+          <tr><td>5</td><td>Flood Lamp (LED 150W)</td><td class="num">10</td><td class="num">0.05%</td></tr>
+          <tr class="row-total"><td></td><td><strong>Jumlah Lampu</strong></td><td class="num"><strong>21,910</strong></td><td class="num"><strong>100%</strong></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ESM Table -->
+    <div class="sub-heading">0.4 Langkah Penjimatan Tenaga (ESM) — Table 0-3</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>No</th><th>Langkah ESM</th>
+            <th class="num">Penjimatan kWh/thn</th><th class="num">Penjimatan RM/thn</th>
+            <th class="num">Pelaburan (RM)</th><th class="num">Tempoh Pulang (thn)</th>
+            <th class="num">CO₂ (tan/thn)</th><th class="num">% Tenaga</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="row-esm1">
+            <td>ESM 1</td><td>Retrofit T8 36W → 18W LED</td>
+            <td class="num">31,752</td><td class="num">10,287.65</td>
+            <td class="num">32,362.50</td><td class="num">3.15</td>
+            <td class="num">22.04</td><td class="num">18.6%</td>
+          </tr>
+          <tr class="row-esm2">
+            <td>ESM 2</td><td>Retrofit 2.5HP Split AC → 2.0HP Five-Star</td>
+            <td class="num">1,787.76</td><td class="num">579.23</td>
+            <td class="num">2,500.00</td><td class="num">4.32</td>
+            <td class="num">1.24</td><td class="num">1%</td>
+          </tr>
+          <tr class="row-esm3">
+            <td>ESM 3</td><td>Pemasangan Solar Photovoltaic (PV)</td>
+            <td class="num">60,920.60</td><td class="num">18,030.80</td>
+            <td class="num">150,000.00</td><td class="num">8.32</td>
+            <td class="num">35.64</td><td class="num">35.7%</td>
+          </tr>
+          <tr class="row-total">
+            <td></td><td><strong>Jumlah 3 ESM</strong></td>
+            <td class="num"><strong>94,460.36</strong></td><td class="num"><strong>28,897.68</strong></td>
+            <td class="num"><strong>184,862.50</strong></td><td class="num"><strong>6.40</strong></td>
+            <td class="num"><strong>58.92</strong></td><td class="num"><strong>2.98%</strong></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Projected BEI Impact Chart -->
+    <div class="section-box">
+      <div class="section-title">Projected ESM Impact — Building Energy Index (BEI) 2025 Reference Year</div>
+      <div class="bei-chart" id="esm-chart"></div>
+      <div class="bei-note">
+        Rujukan tahun 2025. Unjuran kejuruteraan — bukan hasil M&amp;V yang disahkan.<br>
+        Penjimatan Solar PV mewakili anjakan grid, bukan pengurangan permintaan hujung.
+      </div>
+    </div>
+    <p class="footnote">Sumber: PKK Energy Audit Report 2025 · Standard rujukan: MS1525:2014 · Luas lantai: 73,217 m²</p>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       TAB 7 — BUILDING PROFILE
+  ══════════════════════════════════════ -->
+  <div class="tab-panel visible" id="panel-profile">
+
+    <!-- General Info Cards -->
+    <div class="cards" style="grid-template-columns:repeat(4,1fr);">
+      <div class="card">
+        <div class="label">Ditubuhkan</div>
+        <div class="value" style="color:#3b82d4;font-size:1.4rem;">1996</div>
+        <div class="sub">Beroperasi sejak 2003</div>
+      </div>
+      <div class="card">
+        <div class="label">Keluasan Kampus</div>
+        <div class="value" style="color:#7c5cd8;font-size:1.4rem;">43 ha</div>
+        <div class="sub">108 ekar — KKIP Sabah</div>
+      </div>
+      <div class="card">
+        <div class="label">Jumlah Blok</div>
+        <div class="value" style="color:#e07c3a;font-size:1.4rem;">30</div>
+        <div class="sub">2 Kampus (A &amp; B)</div>
+      </div>
+      <div class="card">
+        <div class="label">Populasi</div>
+        <div class="value" style="color:#22a06b;font-size:1.4rem;">4,019</div>
+        <div class="sub">399 staf · 3,620 pelajar</div>
+      </div>
+    </div>
+
+    <!-- Info Box -->
+    <div class="section-box" style="margin-bottom:24px;">
+      <div class="section-title">2.1 Maklumat Am Bangunan</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;font-size:0.85rem;">
+        <div style="padding:9px 14px;border-bottom:1px solid #f0f0f0;border-right:1px solid #f0f0f0;"><span style="color:#57606a;font-weight:600;">Nama Bangunan</span><br>Politeknik Kota Kinabalu (PKK)</div>
+        <div style="padding:9px 14px;border-bottom:1px solid #f0f0f0;"><span style="color:#57606a;font-weight:600;">Fungsi Bangunan</span><br>Institusi Pendidikan TVET</div>
+        <div style="padding:9px 14px;border-bottom:1px solid #f0f0f0;border-right:1px solid #f0f0f0;"><span style="color:#57606a;font-weight:600;">Luas Lantai Bersih (NFA)</span><br>73,430.00 m² (jumlah keseluruhan)</div>
+        <div style="padding:9px 14px;border-bottom:1px solid #f0f0f0;"><span style="color:#57606a;font-weight:600;">Tarif TNB</span><br>KKIP — CM2: Komersial</div>
+        <div style="padding:9px 14px;border-bottom:1px solid #f0f0f0;border-right:1px solid #f0f0f0;"><span style="color:#57606a;font-weight:600;">Masa Operasi</span><br>Isnin – Jumaat: 8:00 pagi – 5:00 petang<br>Sabtu – Ahad: Tutup</div>
+        <div style="padding:9px 14px;border-bottom:1px solid #f0f0f0;"><span style="color:#57606a;font-weight:600;">Koordinat</span><br>6.0972° N, 116.1629° E</div>
+        <div style="padding:9px 14px;border-right:1px solid #f0f0f0;"><span style="color:#57606a;font-weight:600;">Alamat</span><br>No. 4, Jalan Politeknik, KKIP Barat,<br>88460 Kota Kinabalu, Sabah</div>
+        <div style="padding:9px 14px;"><span style="color:#57606a;font-weight:600;">Pemilik Bangunan</span><br>Pengarah PKK — Jabatan Pendidikan Politeknik &amp; Kolej Komuniti, KPT</div>
+      </div>
+    </div>
+
+    <!-- Floor Area Table -->
+    <div class="sub-heading">2.1.2 Luas Lantai Mengikut Bangunan (Table 2-1)</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>No</th><th>Bangunan</th><th>Lokasi</th>
+            <th class="num">NFA (m²)</th><th class="num">Kawasan Berhawa Dingin (m²)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>1</td><td>CORE A</td><td>Zon 2(A)</td><td class="num">10,088.4</td><td class="num">7,776.65</td></tr>
+          <tr><td>2</td><td>ULPL</td><td>Zon 2(B)</td><td class="num">1,723.17</td><td class="num">870.71</td></tr>
+          <tr><td>3</td><td>JKA</td><td>Zon 2(C)</td><td class="num">9,000.14</td><td class="num">5,655.90</td></tr>
+          <tr><td>4</td><td>JKM</td><td>Zon 2(E)</td><td class="num">10,353.90</td><td class="num">6,299.24</td></tr>
+          <tr><td>5</td><td>JKE</td><td>Zon 2(F)</td><td class="num">9,583.15</td><td class="num">6,332.05</td></tr>
+          <tr><td>6</td><td>ISLAMIC CENTER</td><td>Zon 1(G)</td><td class="num">3,921.88</td><td class="num">73.20</td></tr>
+          <tr><td>7</td><td>CAFETARIA</td><td>Zon 1(G)</td><td class="num">1,339.50</td><td class="num">292.80</td></tr>
+          <tr><td>8</td><td>HOSTEL</td><td>Zon 1(I)</td><td class="num">27,207.70</td><td class="num">300.00</td></tr>
+          <tr class="row-total">
+            <td colspan="3"><strong>Jumlah (Skop Audit)</strong></td>
+            <td class="num"><strong>73,217.84</strong></td><td class="num"><strong>27,600.55</strong></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="footnote">NFA total keseluruhan termasuk kawasan di luar skop audit: 73,817 m². Skop audit: 73,217 m².</p>
+
+    <!-- Electrical Supply -->
+    <div class="sub-heading">2.3.1 Sistem Bekalan Elektrik</div>
+    <div class="section-box">
+      <div class="section-title">Infrastruktur Bekalan Tenaga PKK</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:0;">
+        <div style="background:#f7f8fa;border:1px solid #e5e7eb;border-radius:8px;padding:14px;text-align:center;">
+          <div style="font-size:1.5rem;margin-bottom:6px;">⚡</div>
+          <div style="font-size:0.78rem;color:#57606a;text-transform:uppercase;letter-spacing:0.05em;">Voltan Input</div>
+          <div style="font-size:1.3rem;font-weight:700;color:#3b82d4;">11 kV</div>
+          <div style="font-size:0.75rem;color:#57606a;">Dari KKIP Main Substation</div>
+        </div>
+        <div style="background:#f7f8fa;border:1px solid #e5e7eb;border-radius:8px;padding:14px;text-align:center;">
+          <div style="font-size:1.5rem;margin-bottom:6px;">🏭</div>
+          <div style="font-size:0.78rem;color:#57606a;text-transform:uppercase;letter-spacing:0.05em;">Transformer</div>
+          <div style="font-size:1.3rem;font-weight:700;color:#7c5cd8;">3,200 MVA</div>
+          <div style="font-size:0.75rem;color:#57606a;">11/0.400 kV Switchboard</div>
+        </div>
+        <div style="background:#f7f8fa;border:1px solid #e5e7eb;border-radius:8px;padding:14px;text-align:center;">
+          <div style="font-size:1.5rem;margin-bottom:6px;">🔌</div>
+          <div style="font-size:0.78rem;color:#57606a;text-transform:uppercase;letter-spacing:0.05em;">Bilangan Substation</div>
+          <div style="font-size:1.3rem;font-weight:700;color:#e07c3a;">5</div>
+          <div style="font-size:0.75rem;color:#57606a;">Sub-Station 1A, 1B, 2A, 2B, No.2</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AC Inventory -->
+    <div class="sub-heading">2.3.2 Inventori Sistem Pendingin Hawa</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th colspan="3" style="background:#e8f0fb;color:#1a4f9c;">a. Dewan Rafflesia Hall</th></tr>
+          <tr><th>Bil</th><th>Komponen</th><th class="num">Bilangan</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>1</td><td>Water Cooled Packaged</td><td class="num">4</td></tr>
+          <tr><td>2</td><td>Condenser Water Pump</td><td class="num">4</td></tr>
+          <tr><td>3</td><td>Cooling Tower</td><td class="num">3</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th colspan="3" style="background:#fff8e6;color:#8a6200;">b. Lain-lain Bangunan (Split Unit &amp; Fan Coil)</th></tr>
+          <tr><th>No</th><th>Komponen</th><th class="num">Bilangan (unit)</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>1</td><td>Air Conditioner R22 Refrigerant (Split Unit)</td><td class="num">214</td></tr>
+          <tr><td>2</td><td>Air Conditioner R410a — Non Inverter</td><td class="num">136</td></tr>
+          <tr><td>3</td><td>Air Conditioner R410a — Inverter</td><td class="num">136</td></tr>
+          <tr><td>4</td><td>Air Conditioner R410a — Non Inverter</td><td class="num">59</td></tr>
+          <tr><td>5</td><td>Air Conditioner R410a — Inverter</td><td class="num">38</td></tr>
+          <tr><td>6</td><td>Fan Coil Unit Ducted</td><td class="num">11</td></tr>
+          <tr class="row-total"><td></td><td><strong>Jumlah Unit</strong></td><td class="num"><strong>594</strong></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- COP Table -->
+    <div class="sub-heading">Pekali Prestasi (COP) — Sampel AC Unit (Table 2-4)</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Kod AHU</th><th class="num">Beban Sejukan (kWr)</th>
+            <th class="num">Jumlah Kuasa (kW)</th><th class="num">COP</th>
+            <th class="num">Standard Min.</th><th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="row-high"><td>ACSU 1 — Lab EPE1 (2 bintang)</td><td class="num">5.03</td><td class="num">2.10</td><td class="num">2.39</td><td class="num">2.7</td><td><span class="badge-warn">⚠ -11%</span></td></tr>
+          <tr class="row-high"><td>ACSU 1 — Lab Simulation (2 bintang)</td><td class="num">5.03</td><td class="num">2.62</td><td class="num">1.92</td><td class="num">2.7</td><td><span class="badge-warn">⚠ -29%</span></td></tr>
+          <tr><td>ACSU 2 — HOD Office (Tanpa Bintang)</td><td class="num">6.04</td><td class="num">1.74</td><td class="num">3.47</td><td class="num">2.7</td><td><span class="badge-ok">✓ +29%</span></td></tr>
+          <tr class="row-total"><td><strong>Jumlah</strong></td><td class="num"><strong>16</strong></td><td class="num">—</td><td class="num">—</td><td class="num">—</td><td></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="footnote">Standard minimum COP: 2.7 (MS1525:2014). Unit 2-bintang lama menunjukkan COP di bawah standard.</p>
+
+    <!-- Lighting Inventory (corrected from Table 2-5) -->
+    <div class="sub-heading">2.3.3 Inventori Sistem Pencahayaan (Table 2-5)</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>No</th><th>Jenis Lampu</th><th class="num">Bilangan (unit)</th><th class="num">Peratusan (%)</th></tr>
+        </thead>
+        <tbody>
+          <tr class="row-high"><td>1</td><td>Fluorescent 4ft (T8 36W) — <em>konvensional</em></td><td class="num">13,500</td><td class="num">84.86%</td></tr>
+          <tr><td>2</td><td>LED 4ft (18W)</td><td class="num">2,000</td><td class="num">12.57%</td></tr>
+          <tr><td>3</td><td>LED Downlight (12W)</td><td class="num">100</td><td class="num">0.63%</td></tr>
+          <tr><td>4</td><td>LED 2ft (36W)</td><td class="num">300</td><td class="num">1.89%</td></tr>
+          <tr><td>5</td><td>Flood Lamp (LED 150W)</td><td class="num">10</td><td class="num">0.06%</td></tr>
+          <tr class="row-total"><td></td><td><strong>Jumlah Lampu</strong></td><td class="num"><strong>15,910</strong></td><td class="num"><strong>100%</strong></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="badge-row">
+      <div class="badge-count"><span class="bc-num" style="color:#c4302b;">13,500</span><span class="bc-lbl">unit Fluorescent lama (calon retrofit ESM 1)</span></div>
+      <div class="badge-count"><span class="bc-num" style="color:#22a06b;">2,410</span><span class="bc-lbl">unit LED (sudah dinaik taraf)</span></div>
+    </div>
+    <p class="footnote">Kira-kira 2,000 unit telah ditukar kepada LED. Selebihnya masih menggunakan lampu konvensional. Sumber: Table 2-5 PKK Energy Audit.</p>
+
+    <!-- Energy Management Matrix — visual grid matching Diagram 2-5 -->
+    <div class="sub-heading">2.2 Sistem Pengurusan Tenaga — Energy Management Matrix</div>
+    <div class="section-box" style="overflow-x:auto;">
+      <div class="section-title">Diagram 2-5 Politeknik Kota Kinabalu Energy Matrix</div>
+      <table style="width:100%;border-collapse:collapse;font-size:0.78rem;min-width:660px;">
+        <thead>
+          <tr>
+            <th style="background:#2d3748;color:#fff;padding:8px 10px;text-align:center;border:1px solid #4a5568;width:60px;">Tahap</th>
+            <th style="background:#2d3748;color:#fff;padding:8px 10px;text-align:center;border:1px solid #4a5568;">Dasar Tenaga</th>
+            <th style="background:#2d3748;color:#fff;padding:8px 10px;text-align:center;border:1px solid #4a5568;">Pasukan Tenaga</th>
+            <th style="background:#2d3748;color:#fff;padding:8px 10px;text-align:center;border:1px solid #4a5568;">Motivasi</th>
+            <th style="background:#2d3748;color:#fff;padding:8px 10px;text-align:center;border:1px solid #4a5568;">Sistem Maklumat</th>
+            <th style="background:#2d3748;color:#fff;padding:8px 10px;text-align:center;border:1px solid #4a5568;">Pemasaran</th>
+            <th style="background:#2d3748;color:#fff;padding:8px 10px;text-align:center;border:1px solid #4a5568;">Pelaburan</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Level 4 -->
+          <tr>
+            <td style="background:#276749;color:#fff;font-weight:700;text-align:center;padding:8px;border:1px solid #9ae6b4;font-size:1rem;">4</td>
+            <td style="background:#e6f6ef;border:1px solid #b8e8d4;padding:8px 10px;vertical-align:top;"><em>Dasar tenaga, pelan tindakan dan ulasan berkala; pengurusan bertanggungjawab.</em></td>
+            <td style="background:#e6f6ef;border:1px solid #b8e8d4;padding:8px 10px;vertical-align:top;"><em>Pengurusan Tenaga telah diintegrasikan sepenuhnya ke dalam pengurusan organisasi.</em></td>
+            <td style="background:#e6f6ef;border:1px solid #b8e8d4;padding:8px 10px;vertical-align:top;"><em>Komunikasi formal dan tidak formal secara rutin dengan semua peringkat.</em></td>
+            <td style="background:#e6f6ef;border:1px solid #b8e8d4;padding:8px 10px;vertical-align:top;"><em>Sistem komprehensif memantau sasaran penggunaan; laporan kuantitatif.</em></td>
+            <td style="background:#e6f6ef;border:1px solid #b8e8d4;padding:8px 10px;vertical-align:top;"><em>Mempromosikan nilai kecekapan tenaga secara dalaman dan luaran.</em></td>
+            <td style="background:#e6f6ef;border:1px solid #b8e8d4;padding:8px 10px;vertical-align:top;"><em>Diskriminasi positif untuk projek hijau; penilaian pelaburan.</em></td>
+          </tr>
+          <!-- Level 3 — PKK score row highlighted -->
+          <tr style="outline:3px solid #e07c3a;outline-offset:-3px;">
+            <td style="background:#276749;color:#fff;font-weight:700;text-align:center;padding:8px;border:1px solid #9ae6b4;font-size:1rem;">3 ★</td>
+            <td style="background:#fffbea;border:2px solid #e07c3a;padding:8px 10px;vertical-align:top;font-weight:600;">Dasar tenaga formal. Pengurus Tenaga dilantik, bertanggungjawab kepada jawatankuasa tenaga.</td>
+            <td style="background:#fffbea;border:2px solid #e07c3a;padding:8px 10px;vertical-align:top;font-weight:600;">Pengurus Tenaga mengetuai jawatankuasa tenaga yang diwakili pelbagai jabatan.</td>
+            <td style="background:#fffbea;border:2px solid #e07c3a;padding:8px 10px;vertical-align:top;font-weight:600;">Jawatankuasa tenaga menggunakan komunikasi langsung dengan pengurusan atasan.</td>
+            <td style="background:#f7f8fa;border:1px solid #e5e7eb;padding:8px 10px;vertical-align:top;color:#57606a;">Laporan M&amp;V untuk premis individu. Penjimatan diukur tetapi tidak dilaporkan secara berkesan.</td>
+            <td style="background:#f7f8fa;border:1px solid #e5e7eb;padding:8px 10px;vertical-align:top;color:#57606a;">Prestasi kakitangan diukur sebahagiannya. Kempen publisiti ada tetapi terhad.</td>
+            <td style="background:#f7f8fa;border:1px solid #e5e7eb;padding:8px 10px;vertical-align:top;color:#57606a;">Kriteria pembayaran balik untuk beberapa pelaburan kecekapan tenaga.</td>
+          </tr>
+          <!-- Level 2 -->
+          <tr>
+            <td style="background:#276749;color:#fff;font-weight:700;text-align:center;padding:8px;border:1px solid #9ae6b4;font-size:1rem;">2</td>
+            <td style="background:#f7f8fa;border:1px solid #e5e7eb;padding:8px 10px;vertical-align:top;color:#57606a;"><em>Dasar tenaga tidak formal. Pengurus Tenaga separuh masa; tanggungjawab tidak jelas.</em></td>
+            <td style="background:#f7f8fa;border:1px solid #e5e7eb;padding:8px 10px;vertical-align:top;color:#57606a;"><em>Pengurus Tenaga tidak formal. Jawatankuasa ada tetapi kuasa tidak jelas.</em></td>
+            <td style="background:#fffbea;border:2px solid #e07c3a;padding:8px 10px;vertical-align:top;font-weight:600;">Hubungan tidak formal dengan pengguna. Sedikit program; beberapa pengguna sahaja terlibat.</td>
+            <td style="background:#fffbea;border:2px solid #e07c3a;padding:8px 10px;vertical-align:top;font-weight:600;">Pelaporan kos berdasarkan sub-meter. Penjimatan tidak dilaporkan dengan jelas ke pengurusan.</td>
+            <td style="background:#fffbea;border:2px solid #e07c3a;padding:8px 10px;vertical-align:top;font-weight:600;">Kakitangan ad-hoc digunakan untuk bekalan data tenaga. Asas sahaja.</td>
+            <td style="background:#fffbea;border:2px solid #e07c3a;padding:8px 10px;vertical-align:top;font-weight:600;">Pelaburan menggunakan kriteria belanjawan asas sahaja.</td>
+          </tr>
+          <!-- Level 1 -->
+          <tr>
+            <td style="background:#276749;color:#fff;font-weight:700;text-align:center;padding:8px;border:1px solid #9ae6b4;font-size:1rem;">1</td>
+            <td style="background:#f7f8fa;border:1px solid #e5e7eb;padding:8px 10px;vertical-align:top;color:#aab4c0;font-size:0.75rem;"><em>Hanya satu set garis panduan am.</em></td>
+            <td style="background:#f7f8fa;border:1px solid #e5e7eb;padding:8px 10px;vertical-align:top;color:#aab4c0;font-size:0.75rem;"><em>Tanggungjawab Pengurusan Tenaga adalah sebahagian; kuasa terhad.</em></td>
+            <td style="background:#f7f8fa;border:1px solid #e5e7eb;padding:8px 10px;vertical-align:top;color:#aab4c0;font-size:0.75rem;"><em>Hubungan tidak formal antara jurutera dengan pengguna sahaja.</em></td>
+            <td style="background:#f7f8fa;border:1px solid #e5e7eb;padding:8px 10px;vertical-align:top;color:#aab4c0;font-size:0.75rem;"><em>Pelaporan kos berdasarkan laporan am; tiada analisis mendalam.</em></td>
+            <td style="background:#f7f8fa;border:1px solid #e5e7eb;padding:8px 10px;vertical-align:top;color:#aab4c0;font-size:0.75rem;"><em>Hubungan tidak formal; tiada promosi kecekapan tenaga.</em></td>
+            <td style="background:#f7f8fa;border:1px solid #e5e7eb;padding:8px 10px;vertical-align:top;color:#aab4c0;font-size:0.75rem;"><em>Hanya ujian kos langsung.</em></td>
+          </tr>
+          <!-- Level 0 -->
+          <tr>
+            <td style="background:#276749;color:#fff;font-weight:700;text-align:center;padding:8px;border:1px solid #9ae6b4;font-size:1rem;">0</td>
+            <td style="background:#f7f8fa;border:1px solid #e5e7eb;padding:8px 10px;vertical-align:top;color:#aab4c0;font-size:0.75rem;"><em>Tiada dasar tenaga.</em></td>
+            <td style="background:#f7f8fa;border:1px solid #e5e7eb;padding:8px 10px;vertical-align:top;color:#aab4c0;font-size:0.75rem;"><em>Tiada Pengurus Tenaga; tiada tanggungjawab.</em></td>
+            <td style="background:#f7f8fa;border:1px solid #e5e7eb;padding:8px 10px;vertical-align:top;color:#aab4c0;font-size:0.75rem;"><em>Tiada hubungan dengan pengguna.</em></td>
+            <td style="background:#f7f8fa;border:1px solid #e5e7eb;padding:8px 10px;vertical-align:top;color:#aab4c0;font-size:0.75rem;"><em>Tiada sistem maklumat tenaga.</em></td>
+            <td style="background:#f7f8fa;border:1px solid #e5e7eb;padding:8px 10px;vertical-align:top;color:#aab4c0;font-size:0.75rem;"><em>Tiada promosi kecekapan tenaga.</em></td>
+            <td style="background:#f7f8fa;border:1px solid #e5e7eb;padding:8px 10px;vertical-align:top;color:#aab4c0;font-size:0.75rem;"><em>Tiada pelaburan untuk meningkatkan kecekapan tenaga.</em></td>
+          </tr>
+          <!-- PKK Score Row -->
+          <tr>
+            <td style="background:#e07c3a;color:#fff;font-weight:700;text-align:center;padding:8px;border:1px solid #c4642a;font-size:0.72rem;">PKK<br>Score</td>
+            <td style="background:#e07c3a;color:#fff;font-weight:700;text-align:center;padding:8px;border:1px solid #c4642a;font-size:1.1rem;">3</td>
+            <td style="background:#e07c3a;color:#fff;font-weight:700;text-align:center;padding:8px;border:1px solid #c4642a;font-size:1.1rem;">3</td>
+            <td style="background:#e07c3a;color:#fff;font-weight:700;text-align:center;padding:8px;border:1px solid #c4642a;font-size:1.1rem;">3</td>
+            <td style="background:#e07c3a;color:#fff;font-weight:700;text-align:center;padding:8px;border:1px solid #c4642a;font-size:1.1rem;">2</td>
+            <td style="background:#e07c3a;color:#fff;font-weight:700;text-align:center;padding:8px;border:1px solid #c4642a;font-size:1.1rem;">2</td>
+            <td style="background:#e07c3a;color:#fff;font-weight:700;text-align:center;padding:8px;border:1px solid #c4642a;font-size:1.1rem;">2</td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="footnote" style="margin-top:10px;">★ Baris bergarisan oren = tahap semasa PKK. Skor PKK: Dasar 3 · Pasukan 3 · Motivasi 3 · Maklumat 2 · Pemasaran 2 · Pelaburan 2. Sumber: Diagram 2-5 PKK Energy Audit 2025.</p>
+    </div>
+
+    <p class="footnote">Sumber: PKK Energy Audit Report 2025 · Diagram 2-2 hingga 2-10 · Table 2-1 hingga 2-5</p>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       TAB 8 — FORECASTING
+  ══════════════════════════════════════ -->
+  <div class="tab-panel" id="panel-forecast">
+
+    <!-- Intro -->
+    <div class="section-box" style="margin-bottom:20px;background:#f0f4ff;border-color:#c8d8f8;">
+      <div class="section-title" style="color:#1a4f9c;">📈 Model Unjuran Penggunaan Tenaga PKK</div>
+      <p style="font-size:0.85rem;color:#1f2328;line-height:1.7;">
+        Unjuran berdasarkan <strong>regresi linear</strong> data sebenar 2019–2025 (7 tahun).
+        Kadar tarif TNB ditetapkan pada nisbah 2025 (RM 0.3802/kWh).
+        Tiga senario disediakan: <span style="color:#22a06b;font-weight:600;">Optimistik (−5%)</span>,
+        <span style="color:#3b82d4;font-weight:600;">Asas (trend)</span>,
+        <span style="color:#e07c3a;font-weight:600;">Pesimistik (+5%)</span>.
+      </p>
+    </div>
+
+    <!-- Horizon selector -->
+    <div class="year-selector" style="margin-bottom:20px;">
+      <span>Pilih jangka masa:</span>
+      <button class="yr-btn active" id="fc-btn-3"  onclick="renderForecast(3,  this)">3 Tahun (2026–2028)</button>
+      <button class="yr-btn"        id="fc-btn-5"  onclick="renderForecast(5,  this)">5 Tahun (2026–2030)</button>
+      <button class="yr-btn"        id="fc-btn-10" onclick="renderForecast(10, this)">10 Tahun (2026–2035)</button>
+    </div>
+
+    <!-- KPI summary cards (filled by JS) -->
+    <div class="cards cards-3" id="fc-cards" style="margin-bottom:20px;"></div>
+
+    <!-- Trend bar chart -->
+    <div class="section-box" style="margin-bottom:20px;">
+      <div class="section-title">Trend kWh Tahunan — Sebenar vs Unjuran (Senario Asas)</div>
+      <div class="bar-chart-wrap">
+        <div class="bar-chart" id="fc-bar" style="height:150px;"></div>
+      </div>
+      <div class="chart-legend" style="margin-top:10px;">
+        <span><span class="leg-dot" style="background:#aab4c0;"></span>Sebenar (2019–2025)</span>
+        <span><span class="leg-dot" style="background:#3b82d4;"></span>Unjuran Asas</span>
+        <span><span class="leg-dot" style="background:#22a06b;"></span>Optimistik</span>
+        <span><span class="leg-dot" style="background:#e07c3a;"></span>Pesimistik</span>
+      </div>
+    </div>
+
+    <!-- Forecast table (annual) -->
+    <div class="sub-heading">Jadual Unjuran Tahunan — kWh, Max kW &amp; Kos (RM)</div>
+    <div class="table-wrap" id="fc-annual-wrap" style="margin-bottom:20px;"></div>
+
+    <!-- Forecast table (6-month) -->
+    <div class="sub-heading">Jadual Unjuran 6 Bulan Pertama (Jan–Jun) — Setiap Tahun</div>
+    <div class="table-wrap" id="fc-halfyr-wrap" style="margin-bottom:20px;"></div>
+
+    <p class="footnote">
+      Kaedah: Regresi linear kuasa dua terkecil (Least Squares Linear Regression) ke atas data tahunan 2019–2025.<br>
+      Anggaran 6 bulan = 49% daripada unjuran tahunan (berdasarkan corak Jan–Jun sebenar 2019–2025).<br>
+      Tarif rujukan: RM 0.3802/kWh (nisbah kos/kWh 2025 sebenar). Max kW = nisbah kW/kWh purata 2019–2025.<br>
+      <strong>Nota:</strong> Unjuran ini adalah anggaran perancangan — bukan ramalan tepat. Nilai sebenar bergantung kepada perubahan operasi, tarif TNB, dan program penjimatan.
+    </p>
+  </div>
+
+  <!-- ══ FOOTER ══ -->
+  <div class="page-footer">
+    Politeknik Kota Kinabalu &mdash; Sistem Pengurusan Tenaga &mdash; Data: 2019–2025<br>
+    Sumber: Rekod Bil TNB &amp; Laporan Energy Audit PKK. Dikemaskini oleh Pengurus Tenaga PKK.
+  </div>
+
+</div><!-- /.page -->
+
+<script>
+/* ════════════════════════════════════════
+   DATA — kWh, kW, RM per bulan per tahun
+   Source: Diagram 3-1 PKK Energy Audit
+════════════════════════════════════════ */
+var MONTHS = ['Jan','Feb','Mac','Apr','Mei','Jun','Jul','Ogo','Sep','Okt','Nov','Dis'];
+
+var DATA = {
+  '2019': {
+    kwh: [401884,391120,435717,253976,247242,247400,404765,327635,431415,411472,310862,310353],
+    kw:  [1292,1235,1203,1158,1106,1071,1132,1197,1328,1328,1219,1133],
+    rm:  [160185,154324,169288,109154,106369,112457,157406,141617,170588,164127,129858,126840]
+  },
+  '2020': {
+    kwh: [195491,154824,250105,247716,270400,195982,261942,277934,297685,411472,295491,195982],
+    kw:  [868,610,1102,1012,1071,1071,844,846,970,1043,951,1045],
+    rm:  [83477,64250,108480,104736,112457,83477,110494,118730,129090,164127,120090,83477]
+  },
+  '2021': {
+    kwh: [168346,269988,293741,314213,229256,258219,178583,246758,300444,296990,306227,330252],
+    kw:  [963,951,951,858,942,942,807,807,981,981,1076,1001],
+    rm:  [86544,94504,95172,101805,94691,94219,57861,73146,92735,94225,102456,107002]
+  },
+  '2022': {
+    kwh: [168346,269988,293741,314213,229256,258219,178583,246758,300444,296990,306227,330252],
+    kw:  [963,951,951,858,942,942,807,807,981,981,1076,1001],
+    rm:  [86544,94504,95172,101805,94691,94219,57861,73146,92735,94225,102456,107002]
+  },
+  '2023': {
+    kwh: [185144,253745,255080,307575,229092,219643,205265,312000,300444,325301,304754,293917],
+    kw:  [972,963,996,971,989,996,911,930,977,1027,1076,963],
+    rm:  [82550,104555,105753,122182,95485,94219,87641,92447,97409,129224,99075,107512]
+  },
+  '2024': {
+    kwh: [238806,248793,249346,301050,301050,198184,184400,312255,299790,312863,301034,278061],
+    kw:  [951,963,951,971,971,756,911,928,1027,1007,1000,1007],
+    rm:  [77373,80671,80788,97540,97540,77132,84212,97132,97132,101368,77535,102131]
+  },
+  '2025': {
+    kwh: [238806,249346,257625,301050,301050,199184,184400,211622,244132,244132,244132,284384],
+    kw:  [951,1023,906,1045,1038,716,756,928,951,1007,1000,932],
+    rm:  [99436,100405,104522,121784,121784,81781,77350,89034,102731,124730,102731,113763]
+  }
+};
+
+/* Annual totals */
+var ANNUAL = {};
+Object.keys(DATA).forEach(function(yr){
+  var d = DATA[yr];
+  ANNUAL[yr] = {
+    kwh: d.kwh.reduce(function(a,b){return a+b;},0),
+    rm:  d.rm.reduce(function(a,b){return a+b;},0)
+  };
+});
+
+/* Savings vs 2019 */
+var BASE_KWH = ANNUAL['2019'].kwh;
+
+/* ════ STATUS LOGIC ════ */
+function computeStatus(pct){
+  if(pct <= 75) return {label:'🟢 HIJAU — Penggunaan Rendah',  cls:'hijau'};
+  if(pct <= 95) return {label:'🟡 KUNING — Hampir Sasaran',    cls:'kuning'};
+  return             {label:'🔴 MERAH — Melebihi Sasaran',     cls:'merah'};
+}
+/* 2025 vs 2024 as % */
+var pct2025 = Math.round(ANNUAL['2025'].kwh / ANNUAL['2024'].kwh * 100);
+var st = computeStatus(pct2025);
+var pill = document.getElementById('status-pill');
+pill.textContent = st.label;
+pill.className = 'status-pill ' + st.cls;
+
+/* ════ YEARLY BAR CHART ════ */
+(function(){
+  var years = ['2019','2020','2021','2022','2023','2024','2025'];
+  var vals  = years.map(function(y){return ANNUAL[y].kwh;});
+  var maxV  = Math.max.apply(null,vals);
+  var minV  = Math.min.apply(null,vals);
+  var el    = document.getElementById('yearly-bar');
+  years.forEach(function(yr,i){
+    var v   = vals[i];
+    var h   = Math.round((v/maxV)*100);
+    var col = yr==='2019'?'#aab4c0': v===minV?'#22a06b':'#3b82d4';
+    var c   = document.createElement('div');
+    c.className = 'bar-col';
+    c.innerHTML =
+      '<div class="bar" style="height:'+h+'%;background:'+col+'" title="'+yr+': '+v.toLocaleString()+' kWh"></div>'+
+      '<div class="bar-val">'+(v/1000000).toFixed(2)+'M</div>'+
+      '<div class="bar-lbl">'+yr+'</div>';
+    el.appendChild(c);
+  });
+})();
+
+/* ════ MONTHLY BAR CHART ════ */
+function renderMonthly(yr, btn){
+  document.querySelectorAll('.yr-btn').forEach(function(b){ if(b.closest('#panel-ringkasan')) b.classList.remove('active'); });
+  if(btn) btn.classList.add('active');
+  var el = document.getElementById('monthly-bar');
+  el.innerHTML = '';
+  var vals = DATA[yr].kwh;
+  var maxV = Math.max.apply(null,vals);
+  vals.forEach(function(v,i){
+    var h   = Math.round((v/maxV)*100);
+    var col = v===Math.max.apply(null,vals)?'#e07c3a':'#3b82d4';
+    var c   = document.createElement('div');
+    c.className='bar-col';
+    c.innerHTML=
+      '<div class="bar" style="height:'+h+'%;background:'+col+'" title="'+MONTHS[i]+' '+yr+': '+v.toLocaleString()+' kWh"></div>'+
+      '<div class="bar-val">'+(v/1000).toFixed(0)+'k</div>'+
+      '<div class="bar-lbl">'+MONTHS[i]+'</div>';
+    el.appendChild(c);
+  });
+}
+renderMonthly('2025', null);
+
+/* ════ BIL ELEKTRIK TABLE ════ */
+function renderBilTable(yr, btn){
+  /* update buttons */
+  document.querySelectorAll('#panel-bil .yr-btn').forEach(function(b){b.classList.remove('active');});
+  if(btn) btn.classList.add('active');
+
+  var d      = DATA[yr];
+  var totKwh = ANNUAL[yr].kwh;
+  var totRm  = ANNUAL[yr].rm;
+  var avgKwh = Math.round(totKwh/12);
+  var savPct = yr==='2019'?'—':Math.round((1-totKwh/BASE_KWH)*100)+'%';
+
+  /* summary cards */
+  document.getElementById('bil-summary-cards').innerHTML =
+    '<div class="card"><div class="label">Jumlah kWh '+yr+'</div><div class="value" style="color:#3b82d4;">'+totKwh.toLocaleString()+'</div><div class="sub">kWh</div></div>'+
+    '<div class="card"><div class="label">Jumlah Kos '+yr+'</div><div class="value" style="color:#7c5cd8;">RM '+totRm.toLocaleString()+'</div><div class="sub">Ringgit Malaysia</div></div>'+
+    '<div class="card"><div class="label">Penjimatan vs 2019</div><div class="value" style="color:#22a06b;">'+savPct+'</div><div class="sub">Purata: '+avgKwh.toLocaleString()+' kWh/bln</div></div>';
+
+  /* table */
+  var maxKwh = Math.max.apply(null,d.kwh);
+  var rows = MONTHS.map(function(m,i){
+    var hi = d.kwh[i]===maxKwh?' class="row-high"':'';
+    var badge = d.kwh[i]===maxKwh?'<span class="badge-warn">⚠ Puncak</span>':'<span class="badge-ok">✓ Biasa</span>';
+    return '<tr'+hi+'><td>'+m+'</td>'+
+      '<td class="num">'+d.kwh[i].toLocaleString()+'</td>'+
+      '<td class="num">'+d.kw[i].toLocaleString()+'</td>'+
+      '<td class="num">'+d.rm[i].toLocaleString()+'</td>'+
+      '<td>'+badge+'</td></tr>';
+  }).join('');
+
+  document.getElementById('bil-table-wrap').innerHTML =
+    '<table><thead><tr>'+
+    '<th>Bulan</th><th class="num">kWh</th><th class="num">Max Demand (kW)</th><th class="num">Kos (RM)</th><th>Status</th>'+
+    '</tr></thead><tbody>'+rows+
+    '<tr class="row-total"><td><strong>JUMLAH</strong></td>'+
+    '<td class="num">'+totKwh.toLocaleString()+'</td><td class="num">—</td>'+
+    '<td class="num">'+totRm.toLocaleString()+'</td><td></td></tr>'+
+    '<tr class="row-avg"><td>Purata Bulanan</td>'+
+    '<td class="num">'+avgKwh.toLocaleString()+'</td><td class="num">—</td>'+
+    '<td class="num">'+Math.round(totRm/12).toLocaleString()+'</td><td></td></tr>'+
+    '</tbody></table>';
+}
+renderBilTable('2025', null);
+
+/* ════ TAB SWITCHING ════ */
+function switchTab(panelId, btn){
+  document.querySelectorAll('.tab-panel').forEach(function(p){p.classList.remove('visible');});
+  document.querySelectorAll('.tab-btn').forEach(function(b){b.classList.remove('active');});
+  document.getElementById('panel-'+panelId).classList.add('visible');
+  btn.classList.add('active');
+}
+
+/* ════════════════════════════════════════
+   FORECASTING ENGINE
+   Linear regression (OLS) on annual kWh
+   2019=year 0 ... 2025=year 6
+════════════════════════════════════════ */
+(function(){
+
+  /* ── Annual actuals ── */
+  var ACTUAL_YEARS  = [2019,2020,2021,2022,2023,2024,2025];
+  var ACTUAL_KWH    = [4427017, 2984927, 2891060, 2984927, 3191060, 3126518, 3169134];
+  var ACTUAL_KW_AVG = [1218, 942, 943, 943, 984, 966, 946]; /* avg monthly max kW per year */
+  var ACTUAL_RM     = [1434354, 967116, 1033903, 967116, 1033903, 1012992, 1204881];
+
+  /* ── Constants ── */
+  var TARIFF   = 1204881 / 3169134;       /* RM/kWh from 2025 actual = ~0.3802 */
+  var KW_RATIO = (function(){             /* avg kW per 1000 kWh */
+    var sum = 0;
+    ACTUAL_KWH.forEach(function(k,i){ sum += ACTUAL_KW_AVG[i] / (k/1000); });
+    return sum / ACTUAL_KWH.length;
+  })();
+  var HALFYR_RATIO = 0.49; /* Jan-Jun share of annual (from actual data) */
+
+  /* ── OLS linear fit: y = a + b*x  (x=0 at 2019) ── */
+  function linReg(xs, ys){
+    var n = xs.length, sx=0, sy=0, sxy=0, sxx=0;
+    for(var i=0;i<n;i++){ sx+=xs[i]; sy+=ys[i]; sxy+=xs[i]*ys[i]; sxx+=xs[i]*xs[i]; }
+    var b = (n*sxy - sx*sy)/(n*sxx - sx*sx);
+    var a = (sy - b*sx)/n;
+    return {a:a, b:b};
+  }
+  var xs = ACTUAL_YEARS.map(function(y){ return y-2019; });
+  var fit = linReg(xs, ACTUAL_KWH);
+
+  /* ── Project a single year ── */
+  function project(yr){
+    var x   = yr - 2019;
+    var base = Math.round(fit.a + fit.b * x);
+    return {
+      yr:   yr,
+      base: base,
+      opt:  Math.round(base * 0.95),
+      pes:  Math.round(base * 1.05)
+    };
+  }
+
+  /* ── Format helpers ── */
+  function fmtN(n){ return Math.round(n).toLocaleString(); }
+  function fmtRM(n){ return 'RM ' + Math.round(n).toLocaleString(); }
+  function fmtKW(kwh){ return Math.round(kwh/1000 * KW_RATIO).toLocaleString(); }
+
+  /* ── Render KPI cards ── */
+  function renderCards(rows){
+    var last = rows[rows.length-1];
+    var first = rows[0];
+    var totalBase = rows.reduce(function(s,r){return s+r.base;},0);
+    document.getElementById('fc-cards').innerHTML =
+      '<div class="card"><div class="label">Unjuran kWh '+first.yr+'</div>'+
+        '<div class="value" style="color:#3b82d4;font-size:1.5rem;">'+fmtN(first.base)+'</div>'+
+        '<div class="sub">Senario Asas</div></div>'+
+      '<div class="card"><div class="label">Unjuran kWh '+last.yr+'</div>'+
+        '<div class="value" style="color:#7c5cd8;font-size:1.5rem;">'+fmtN(last.base)+'</div>'+
+        '<div class="sub">Senario Asas</div></div>'+
+      '<div class="card"><div class="label">Jumlah Kos Kumulatif</div>'+
+        '<div class="value" style="color:#e07c3a;font-size:1.3rem;">'+fmtRM(totalBase*TARIFF)+'</div>'+
+        '<div class="sub">'+first.yr+'–'+last.yr+' (Asas)</div></div>';
+  }
+
+  /* ── Render bar chart ── */
+  function renderBar(fcRows){
+    var el = document.getElementById('fc-bar');
+    el.innerHTML = '';
+    /* actuals */
+    var allVals = ACTUAL_KWH.concat(fcRows.map(function(r){return r.base;}));
+    var maxV = Math.max.apply(null, allVals);
+    ACTUAL_YEARS.forEach(function(yr,i){
+      var h = Math.round((ACTUAL_KWH[i]/maxV)*100);
+      var c = document.createElement('div');
+      c.className='bar-col';
+      c.innerHTML='<div class="bar" style="height:'+h+'%;background:#aab4c0;" title="'+yr+': '+ACTUAL_KWH[i].toLocaleString()+' kWh"></div>'+
+        '<div class="bar-val">'+(ACTUAL_KWH[i]/1000000).toFixed(2)+'M</div>'+
+        '<div class="bar-lbl">'+yr+'</div>';
+      el.appendChild(c);
+    });
+    /* forecast */
+    fcRows.forEach(function(r){
+      var h = Math.round((r.base/maxV)*100);
+      var c = document.createElement('div');
+      c.className='bar-col';
+      c.innerHTML='<div class="bar" style="height:'+h+'%;background:#3b82d4;opacity:0.75;border:2px dashed #1a4f9c;border-bottom:none;" title="'+r.yr+' Asas: '+r.base.toLocaleString()+' kWh"></div>'+
+        '<div class="bar-val">'+(r.base/1000000).toFixed(2)+'M</div>'+
+        '<div class="bar-lbl">'+r.yr+'*</div>';
+      el.appendChild(c);
+    });
+  }
+
+  /* ── Render annual forecast table ── */
+  function renderAnnual(rows){
+    var head = '<table><thead><tr>'+
+      '<th>Tahun</th>'+
+      '<th class="num" style="color:#22a06b;">Optimistik kWh</th>'+
+      '<th class="num" style="color:#3b82d4;">Asas kWh</th>'+
+      '<th class="num" style="color:#e07c3a;">Pesimistik kWh</th>'+
+      '<th class="num">Max kW (Asas)</th>'+
+      '<th class="num" style="color:#22a06b;">Kos Opt (RM)</th>'+
+      '<th class="num" style="color:#3b82d4;">Kos Asas (RM)</th>'+
+      '<th class="num" style="color:#e07c3a;">Kos Pes (RM)</th>'+
+      '</tr></thead><tbody>';
+    var body = rows.map(function(r){
+      return '<tr>'+
+        '<td><strong>'+r.yr+'</strong></td>'+
+        '<td class="num" style="color:#22a06b;">'+fmtN(r.opt)+'</td>'+
+        '<td class="num" style="color:#3b82d4;font-weight:600;">'+fmtN(r.base)+'</td>'+
+        '<td class="num" style="color:#e07c3a;">'+fmtN(r.pes)+'</td>'+
+        '<td class="num">'+fmtKW(r.base)+'</td>'+
+        '<td class="num" style="color:#22a06b;">'+fmtRM(r.opt*TARIFF)+'</td>'+
+        '<td class="num" style="color:#3b82d4;font-weight:600;">'+fmtRM(r.base*TARIFF)+'</td>'+
+        '<td class="num" style="color:#e07c3a;">'+fmtRM(r.pes*TARIFF)+'</td>'+
+        '</tr>';
+    }).join('');
+    /* totals */
+    var tOpt=0,tBase=0,tPes=0;
+    rows.forEach(function(r){tOpt+=r.opt;tBase+=r.base;tPes+=r.pes;});
+    var foot = '<tr class="row-total">'+
+      '<td><strong>JUMLAH</strong></td>'+
+      '<td class="num" style="color:#22a06b;">'+fmtN(tOpt)+'</td>'+
+      '<td class="num" style="color:#3b82d4;font-weight:700;">'+fmtN(tBase)+'</td>'+
+      '<td class="num" style="color:#e07c3a;">'+fmtN(tPes)+'</td>'+
+      '<td class="num">—</td>'+
+      '<td class="num" style="color:#22a06b;">'+fmtRM(tOpt*TARIFF)+'</td>'+
+      '<td class="num" style="color:#3b82d4;font-weight:700;">'+fmtRM(tBase*TARIFF)+'</td>'+
+      '<td class="num" style="color:#e07c3a;">'+fmtRM(tPes*TARIFF)+'</td>'+
+      '</tr>';
+    document.getElementById('fc-annual-wrap').innerHTML = head+body+foot+'</tbody></table>';
+  }
+
+  /* ── Render 6-month forecast table ── */
+  function renderHalfYr(rows){
+    var head = '<table><thead><tr>'+
+      '<th>Tahun</th><th>Tempoh</th>'+
+      '<th class="num" style="color:#22a06b;">Optimistik kWh</th>'+
+      '<th class="num" style="color:#3b82d4;">Asas kWh</th>'+
+      '<th class="num" style="color:#e07c3a;">Pesimistik kWh</th>'+
+      '<th class="num" style="color:#3b82d4;">Kos Asas (RM)</th>'+
+      '</tr></thead><tbody>';
+    var body = rows.map(function(r){
+      var hOpt  = Math.round(r.opt  * HALFYR_RATIO);
+      var hBase = Math.round(r.base * HALFYR_RATIO);
+      var hPes  = Math.round(r.pes  * HALFYR_RATIO);
+      return '<tr>'+
+        '<td><strong>'+r.yr+'</strong></td>'+
+        '<td>Jan – Jun</td>'+
+        '<td class="num" style="color:#22a06b;">'+fmtN(hOpt)+'</td>'+
+        '<td class="num" style="color:#3b82d4;font-weight:600;">'+fmtN(hBase)+'</td>'+
+        '<td class="num" style="color:#e07c3a;">'+fmtN(hPes)+'</td>'+
+        '<td class="num" style="color:#3b82d4;font-weight:600;">'+fmtRM(hBase*TARIFF)+'</td>'+
+        '</tr>';
+    }).join('');
+    document.getElementById('fc-halfyr-wrap').innerHTML = head+body+'</tbody></table>';
+  }
+
+  /* ── Main render function (called by buttons) ── */
+  window.renderForecast = function(horizon, btn){
+    document.querySelectorAll('#panel-forecast .yr-btn').forEach(function(b){b.classList.remove('active');});
+    if(btn) btn.classList.add('active');
+    var rows = [];
+    for(var y=2026; y<2026+horizon; y++){ rows.push(project(y)); }
+    renderCards(rows);
+    renderBar(rows);
+    renderAnnual(rows);
+    renderHalfYr(rows);
+  };
+
+  /* ── Init on load ── */
+  renderForecast(3, document.getElementById('fc-btn-3'));
+
+})();
+
+/* ════ BEI CHART ════ */
+(function(){
+  var rows = [
+    { lbl:'BEI 2019 (Baseline)',      val:60.46, col:'#aab4c0' },
+    { lbl:'BEI 2025 (Semasa)',        val:43.28, col:'#3b82d4' },
+    { lbl:'ACEI — Penyejukan',        val:59.49, col:'#e07c3a' },
+    { lbl:'LEI — Pencahayaan',        val:11.35, col:'#3b82d4' },
+    { lbl:'PLEI — Plug Load',         val:6.99,  col:'#7c5cd8' }
+  ];
+  var maxV = 65;
+  var el = document.getElementById('bei-chart');
+  rows.forEach(function(r){
+    var pct = Math.round((r.val/maxV)*100);
+    var div = document.createElement('div');
+    div.className = 'bei-row';
+    div.innerHTML =
+      '<div class="bei-lbl">'+r.lbl+'</div>'+
+      '<div class="bei-track">'+
+        '<div class="bei-fill" style="width:'+pct+'%;background:'+r.col+'">'+
+          '<span>'+r.val+' kWh/m²</span>'+
+        '</div>'+
+      '</div>';
+    el.appendChild(div);
+  });
+})();
+
+/* ════ ESM PROJECTED BEI CHART ════ */
+(function(){
+  var rows = [
+    { lbl:'2025 BEI Sebenar',         val:43.28, col:'#1f2328' },
+    { lbl:'ESM 1 — LED Lighting',     val:42.85, col:'#22a06b' },
+    { lbl:'ESM 2 — Air Conditioning', val:43.26, col:'#22a06b' },
+    { lbl:'ESM 3 — Solar PV',         val:42.45, col:'#22a06b' },
+    { lbl:'Semua 3 ESM (Unjuran)',     val:41.99, col:'#e07c3a' }
+  ];
+  var minV = 41.5, maxV = 43.75;
+  var range = maxV - minV;
+  var el = document.getElementById('esm-chart');
+  rows.forEach(function(r){
+    var pct = Math.round(((r.val - minV)/range)*100);
+    pct = Math.max(pct, 8);
+    var div = document.createElement('div');
+    div.className = 'bei-row';
+    div.innerHTML =
+      '<div class="bei-lbl">'+r.lbl+'</div>'+
+      '<div class="bei-track">'+
+        '<div class="bei-fill" style="width:'+pct+'%;background:'+r.col+'">'+
+          '<span>'+r.val+'</span>'+
+        '</div>'+
+      '</div>';
+    el.appendChild(div);
+  });
+})();
+</script>
+</body>
+</html>
